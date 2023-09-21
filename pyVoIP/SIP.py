@@ -376,23 +376,14 @@ class SIPMessage:
 
         if check in self.SIPCompatibleVersions:
             self.type = SIPMessageType.RESPONSE
-            self.parseSIPResponse(data)
+            self.parse_sip_response(data)
         elif check in self.SIPCompatibleMethods:
             self.type = SIPMessageType.MESSAGE
-            self.parseSIPMessage(data)
+            self.parse_sip_message(data)
         else:
             raise SIPParseError(
                 "Unable to decipher SIP request: " + str(heading, "utf8")
             )
-
-    def parseHeader(self, header: str, data: str) -> None:
-        warnings.warn(
-            "parseHeader is deprecated due to PEP8 compliance. "
-            + "Use parse_header instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.parse_header(header, data)
 
     def parse_header(self, header: str, data: str) -> None:
         if header == "Via":
@@ -464,14 +455,6 @@ class SIPMessage:
         else:
             self.headers[header] = data
 
-    def parseBody(self, header: str, data: str) -> None:
-        warnings.warn(
-            "parseBody is deprecated due to PEP8 compliance. "
-            + "Use parse_body instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.parse_body(header, data)
 
     def parse_body(self, header: str, data: str) -> None:
         if "Content-Encoding" in self.headers:
@@ -744,15 +727,6 @@ class SIPMessage:
                 if i != [""]:
                     handle(i[0], i[1])
 
-    def parseSIPResponse(self, data: bytes) -> None:
-        warnings.warn(
-            "parseSIPResponse is deprecated "
-            + "due to PEP8 compliance. Use parse_sip_response "
-            + "instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.parse_sip_response(data)
 
     def parse_sip_response(self, data: bytes) -> None:
         headers, body = data.split(b"\r\n\r\n")
@@ -765,18 +739,10 @@ class SIPMessage:
 
         self.status = SIPStatus(int(self.heading.split(b" ")[1]))
 
-        self.parse_raw_header(headers_raw, self.parseHeader)
+        self.parse_raw_header(headers_raw, self.parse_header)
 
-        self.parse_raw_body(body, self.parseBody)
+        self.parse_raw_body(body, self.parse_body)
 
-    def parseSIPMessage(self, data: bytes) -> None:
-        warnings.warn(
-            "parseSIPMessage is deprecated due to PEP8 compliance."
-            + " Use parse_sip_message instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.parse_sip_message(data)
 
     def parse_sip_message(self, data: bytes) -> None:
         headers, body = data.split(b"\r\n\r\n")
@@ -789,9 +755,9 @@ class SIPMessage:
 
         self.method = str(self.heading.split(b" ")[0], "utf8")
 
-        self.parse_raw_header(headers_raw, self.parseHeader)
+        self.parse_raw_header(headers_raw, self.parse_header)
 
-        self.parse_raw_body(body, self.parseBody)
+        self.parse_raw_body(body, self.parse_body)
 
 
 class SIPClient:
@@ -815,7 +781,7 @@ class SIPClient:
         self.callCallback = callCallback
 
         self.tags: List[str] = []
-        self.tagLibrary = {"register": self.genTag()}
+        self.tagLibrary = {"register": self.gen_tag()}
 
         self.myPort = myPort
 
@@ -844,7 +810,7 @@ class SIPClient:
                     try:
                         message = SIPMessage(raw)
                         debug(message.summary())
-                        self.parseMessage(message)
+                        self.parse_message(message)
                     except Exception as ex:
                         debug(f"Error on header parsing: {ex}")
             except BlockingIOError:
@@ -854,7 +820,7 @@ class SIPClient:
                 continue
             except SIPParseError as e:
                 if "SIP Version" in str(e):
-                    request = self.genSIPVersionNotSupported(message)
+                    request = self.gen_sip_version_not_supported(message)
                     self.out.sendto(
                         request.encode("utf8"), (self.server, self.port)
                     )
@@ -868,15 +834,6 @@ class SIPClient:
                     raise
             self.s.setblocking(True)
             self.recvLock.release()
-
-    def parseMessage(self, message: SIPMessage) -> None:
-        warnings.warn(
-            "parseMessage is deprecated due to PEP8 compliance. "
-            + "Use parse_message instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.parse_message(message)
 
     def parse_message(self, message: SIPMessage) -> None:
         if message.type != SIPMessageType.MESSAGE:
@@ -904,7 +861,7 @@ class SIPClient:
             return
         elif message.method == "INVITE":
             if self.callCallback is None:
-                request = self.genBusy(message)
+                request = self.gen_busy(message)
                 self.out.sendto(
                     request.encode("utf8"), (self.server, self.port)
                 )
@@ -913,7 +870,7 @@ class SIPClient:
         elif message.method == "BYE":
             # TODO: If callCallback is None, the call doesn't exist, 481
             self.callCallback(message)  # type: ignore
-            response = self.genOk(message)
+            response = self.gen_ok(message)
             try:
                 # BYE comes from client cause server only acts as mediator
                 (_sender_adress, _sender_port) = message.headers["Via"][0][
@@ -933,7 +890,7 @@ class SIPClient:
         elif message.method == "CANCEL":
             # TODO: If callCallback is None, the call doesn't exist, 481
             self.callCallback(message)  # type: ignore
-            response = self.genOk(message)
+            response = self.gen_ok(message)
             self.out.sendto(response.encode("utf8"), (self.server, self.port))
         else:
             debug("TODO: Add 400 Error on non processable request")
@@ -967,42 +924,18 @@ class SIPClient:
             if self.out:
                 self.out.close()
 
-    def genCallID(self) -> str:
-        warnings.warn(
-            "genCallID is deprecated due to PEP8 compliance. "
-            + "Use gen_call_id instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_call_id()
 
     def gen_call_id(self) -> str:
         hash = hashlib.sha256(str(self.callID.next()).encode("utf8"))
         hhash = hash.hexdigest()
         return f"{hhash[0:32]}@{self.myIP}:{self.myPort}"
 
-    def lastCallID(self) -> str:
-        warnings.warn(
-            "lastCallID is deprecated due to PEP8 compliance. "
-            + "Use gen_last_call_id instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_last_call_id()
 
     def gen_last_call_id(self) -> str:
         hash = hashlib.sha256(str(self.callID.current() - 1).encode("utf8"))
         hhash = hash.hexdigest()
         return f"{hhash[0:32]}@{self.myIP}:{self.myPort}"
 
-    def genTag(self) -> str:
-        warnings.warn(
-            "genTag is deprecated due to PEP8 compliance. "
-            + "Use gen_tag instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_tag()
 
     def gen_tag(self) -> str:
         # Keep as True instead of NSD so it can generate a tag on deregister.
@@ -1014,15 +947,6 @@ class SIPClient:
                 return tag
         return ""
 
-    def genSIPVersionNotSupported(self, request: SIPMessage) -> str:
-        warnings.warn(
-            "genSIPVersionNotSupported is deprecated "
-            + "due to PEP8 compliance. "
-            + "Use gen_sip_version_not_supported instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_sip_version_not_supported(request)
 
     def gen_sip_version_not_supported(self, request: SIPMessage) -> str:
         # TODO: Add Supported
@@ -1033,7 +957,7 @@ class SIPClient:
             + f"{request.headers['From']['tag']}\r\n"
         )
         response += (
-            f"To: {request.headers['To']['raw']};tag=" + f"{self.genTag()}\r\n"
+            f"To: {request.headers['To']['raw']};tag=" + f"{self.gen_tag()}\r\n"
         )
         response += f"Call-ID: {request.headers['Call-ID']}\r\n"
         response += (
@@ -1048,14 +972,6 @@ class SIPClient:
 
         return response
 
-    def genAuthorization(self, request: SIPMessage) -> bytes:
-        warnings.warn(
-            "genAuthorization is deprecated "
-            + "due to PEP8 compliance. Use gen_authorization instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_authorization(request)
 
     def gen_authorization(self, request: SIPMessage) -> bytes:
         realm = request.authentication["realm"]
@@ -1075,19 +991,6 @@ class SIPClient:
 
         return response
 
-    def genBranch(self, length=32) -> str:
-        """
-        Generate unique branch id according to
-        https://datatracker.ietf.org/doc/html/rfc3261#section-8.1.1.7
-        """
-        warnings.warn(
-            "genBranch is deprecated due to PEP8 compliance. "
-            + "Use gen_branch instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_branch(length)
-
     def gen_branch(self, length=32) -> str:
         """
         Generate unique branch id according to
@@ -1102,21 +1005,12 @@ class SIPClient:
         """
         return str(uuid.uuid4()).upper()
 
-    def genFirstRequest(self, deregister=False) -> str:
-        warnings.warn(
-            "genFirstResponse is deprecated "
-            + "due to PEP8 compliance. "
-            + "Use gen_first_response instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_first_response(deregister)
 
     def gen_first_response(self, deregister=False) -> str:
         regRequest = f"REGISTER sip:{self.server} SIP/2.0\r\n"
         regRequest += (
             f"Via: SIP/2.0/UDP {self.myIP}:{self.myPort};"
-            + f"branch={self.genBranch()};rport\r\n"
+            + f"branch={self.gen_branch()};rport\r\n"
         )
         regRequest += (
             f'From: "{self.username}" '
@@ -1127,7 +1021,7 @@ class SIPClient:
             f'To: "{self.username}" '
             + f"<sip:{self.username}@{self.server}>\r\n"
         )
-        regRequest += f"Call-ID: {self.genCallID()}\r\n"
+        regRequest += f"Call-ID: {self.gen_call_id()}\r\n"
         regRequest += f"CSeq: {self.registerCounter.next()} REGISTER\r\n"
         regRequest += (
             "Contact: "
@@ -1149,25 +1043,17 @@ class SIPClient:
 
         return regRequest
 
-    def genSubscribe(self, response: SIPMessage) -> str:
-        warnings.warn(
-            "genSubscribe is deprecated due to PEP8 compliance. "
-            + "Use gen_subscribe instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_subscribe(response)
 
     def gen_subscribe(self, response: SIPMessage) -> str:
         subRequest = f"SUBSCRIBE sip:{self.username}@{self.server} SIP/2.0\r\n"
         subRequest += (
             f"Via: SIP/2.0/UDP {self.myIP}:{self.myPort};"
-            + f"branch={self.genBranch()};rport\r\n"
+            + f"branch={self.gen_branch()};rport\r\n"
         )
         subRequest += (
             f'From: "{self.username}" '
             + f"<sip:{self.username}@{self.server}>;tag="
-            + f"{self.genTag()}\r\n"
+            + f"{self.gen_tag()}\r\n"
         )
         subRequest += f"To: <sip:{self.username}@{self.server}>\r\n"
         subRequest += f'Call-ID: {response.headers["Call-ID"]}\r\n'
@@ -1189,24 +1075,16 @@ class SIPClient:
 
         return subRequest
 
-    def genRegister(self, request: SIPMessage, deregister=False) -> str:
-        warnings.warn(
-            "genRegister is deprecated due to PEP8 compliance. "
-            + "Use gen_register instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_register(request, deregister)
 
     def gen_register(self, request: SIPMessage, deregister=False) -> str:
-        response = str(self.genAuthorization(request), "utf8")
+        response = str(self.gen_authorization(request), "utf8")
         nonce = request.authentication["nonce"]
         realm = request.authentication["realm"]
 
         regRequest = f"REGISTER sip:{self.server} SIP/2.0\r\n"
         regRequest += (
             f"Via: SIP/2.0/UDP {self.myIP}:{self.myPort};branch="
-            + f"{self.genBranch()};rport\r\n"
+            + f"{self.gen_branch()};rport\r\n"
         )
         regRequest += (
             f'From: "{self.username}" '
@@ -1245,14 +1123,6 @@ class SIPClient:
 
         return regRequest
 
-    def genBusy(self, request: SIPMessage) -> str:
-        warnings.warn(
-            "genBusy is deprecated due to PEP8 compliance. "
-            + "Use gen_busy instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_busy(request)
 
     def gen_busy(self, request: SIPMessage) -> str:
         response = "SIP/2.0 486 Busy Here\r\n"
@@ -1262,7 +1132,7 @@ class SIPClient:
             + f"{request.headers['From']['tag']}\r\n"
         )
         response += (
-            f"To: {request.headers['To']['raw']};tag=" + f"{self.genTag()}\r\n"
+            f"To: {request.headers['To']['raw']};tag=" + f"{self.gen_tag()}\r\n"
         )
         response += f"Call-ID: {request.headers['Call-ID']}\r\n"
         response += (
@@ -1278,14 +1148,6 @@ class SIPClient:
 
         return response
 
-    def genOk(self, request: SIPMessage) -> str:
-        warnings.warn(
-            "genOk is deprecated due to PEP8 compliance. "
-            + "Use gen_ok instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_ok(request)
 
     def gen_ok(self, request: SIPMessage) -> str:
         okResponse = "SIP/2.0 200 OK\r\n"
@@ -1295,7 +1157,7 @@ class SIPClient:
             + f"{request.headers['From']['tag']}\r\n"
         )
         okResponse += (
-            f"To: {request.headers['To']['raw']};tag=" + f"{self.genTag()}\r\n"
+            f"To: {request.headers['To']['raw']};tag=" + f"{self.gen_tag()}\r\n"
         )
         okResponse += f"Call-ID: {request.headers['Call-ID']}\r\n"
         okResponse += (
@@ -1308,17 +1170,9 @@ class SIPClient:
 
         return okResponse
 
-    def genRinging(self, request: SIPMessage) -> str:
-        warnings.warn(
-            "genRinging is deprecated due to PEP8 compliance. "
-            + "Use gen_ringing instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_ringing(request)
 
     def gen_ringing(self, request: SIPMessage) -> str:
-        tag = self.genTag()
+        tag = self.gen_tag()
         regRequest = "SIP/2.0 180 Ringing\r\n"
         regRequest += self._gen_response_via_header(request)
         regRequest += (
@@ -1340,21 +1194,6 @@ class SIPClient:
         self.tagLibrary[request.headers["Call-ID"]] = tag
 
         return regRequest
-
-    def genAnswer(
-        self,
-        request: SIPMessage,
-        sess_id: str,
-        ms: Dict[int, Dict[int, "RTP.PayloadType"]],
-        sendtype: "RTP.TransmitType",
-    ) -> str:
-        warnings.warn(
-            "genAnswer is deprecated due to PEP8 compliance. "
-            + "Use gen_answer instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_answer(request, sess_id, ms, sendtype)
 
     def gen_answer(
         self,
@@ -1413,23 +1252,6 @@ class SIPClient:
 
         return regRequest
 
-    def genInvite(
-        self,
-        number: str,
-        sess_id: str,
-        ms: Dict[int, Dict[str, "RTP.PayloadType"]],
-        sendtype: "RTP.TransmitType",
-        branch: str,
-        call_id: str,
-    ) -> str:
-        warnings.warn(
-            "genInvite is deprecated due to PEP8 compliance. "
-            + "Use gen_invite instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_invite(number, sess_id, ms, sendtype, branch, call_id)
-
     def gen_invite(
         self,
         number: str,
@@ -1461,7 +1283,7 @@ class SIPClient:
         body += "a=maxptime:150\r\n"
         body += f"a={sendtype}\r\n"
 
-        tag = self.genTag()
+        tag = self.gen_tag()
         self.tagLibrary[call_id] = tag
 
         invRequest = f"INVITE sip:{number}@{self.server} SIP/2.0\r\n"
@@ -1486,14 +1308,6 @@ class SIPClient:
 
         return invRequest
 
-    def genBye(self, request: SIPMessage) -> str:
-        warnings.warn(
-            "genBye is deprecated due to PEP8 compliance. "
-            + "Use gen_bye instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_bye(request)
 
     def gen_bye(self, request: SIPMessage) -> str:
         tag = self.tagLibrary[request.headers["Call-ID"]]
@@ -1527,14 +1341,6 @@ class SIPClient:
 
         return byeRequest
 
-    def genAck(self, request: SIPMessage) -> str:
-        warnings.warn(
-            "genAck is deprecated due to PEP8 compliance. "
-            + "Use gen_ack instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.gen_ack(request)
 
     def gen_ack(self, request: SIPMessage) -> str:
         tag = self.tagLibrary[request.headers["Call-ID"]]
@@ -1543,7 +1349,7 @@ class SIPClient:
         ackMessage += self._gen_response_via_header(request)
         ackMessage += "Max-Forwards: 70\r\n"
         ackMessage += (
-            f"To: {request.headers['To']['raw']};tag=" + f"{self.genTag()}\r\n"
+            f"To: {request.headers['To']['raw']};tag=" + f"{self.gen_tag()}\r\n"
         )
         ackMessage += f"From: {request.headers['From']['raw']};tag={tag}\r\n"
         ackMessage += f"Call-ID: {request.headers['Call-ID']}\r\n"
@@ -1579,10 +1385,10 @@ class SIPClient:
         ms: Dict[int, Dict[str, "RTP.PayloadType"]],
         sendtype: "RTP.TransmitType",
     ) -> Tuple[SIPMessage, str, int]:
-        branch = "z9hG4bK" + self.genCallID()[0:25]
-        call_id = self.genCallID()
+        branch = "z9hG4bK" + self.gen_call_id()[0:25]
+        call_id = self.gen_call_id()
         sess_id = self.sessID.next()
-        invite = self.genInvite(
+        invite = self.gen_invite(
             number, str(sess_id), ms, sendtype, branch, call_id
         )
         self.recvLock.acquire()
@@ -1597,7 +1403,7 @@ class SIPClient:
         ) or response.headers["Call-ID"] != call_id:
             if not self.NSD:
                 break
-            self.parseMessage(response)
+            self.parse_message(response)
             response = SIPMessage(self.s.recv(8192))
 
         if response.status == SIPStatus(100) or response.status == SIPStatus(
@@ -1606,10 +1412,10 @@ class SIPClient:
             self.recvLock.release()
             return SIPMessage(invite.encode("utf8")), call_id, sess_id
         debug(f"Received Response: {response.summary()}")
-        ack = self.genAck(response)
+        ack = self.gen_ack(response)
         self.out.sendto(ack.encode("utf8"), (self.server, self.port))
         debug("Acknowledged")
-        authhash = self.genAuthorization(response)
+        authhash = self.gen_authorization(response)
         nonce = response.authentication["nonce"]
         realm = response.authentication["realm"]
         auth = (
@@ -1619,7 +1425,7 @@ class SIPClient:
             + "algorithm=MD5\r\n"
         )
 
-        invite = self.genInvite(
+        invite = self.gen_invite(
             number, str(sess_id), ms, sendtype, branch, call_id
         )
         invite = invite.replace(
@@ -1633,13 +1439,13 @@ class SIPClient:
         return SIPMessage(invite.encode("utf8")), call_id, sess_id
 
     def bye(self, request: SIPMessage) -> None:
-        message = self.genBye(request)
+        message = self.gen_bye(request)
         # TODO: Handle bye to server vs. bye to connected client
         self.out.sendto(message.encode("utf8"), (self.server, self.port))
 
     def deregister(self) -> bool:
         self.recvLock.acquire()
-        firstRequest = self.genFirstRequest(deregister=True)
+        firstRequest = self.gen_first_response(deregister=True)
         self.out.sendto(firstRequest.encode("utf8"), (self.server, self.port))
 
         self.out.setblocking(False)
@@ -1655,7 +1461,7 @@ class SIPClient:
 
         if response.status == SIPStatus(401):
             # Unauthorized, likely due to being password protected.
-            regRequest = self.genRegister(response, deregister=True)
+            regRequest = self.gen_register(response, deregister=True)
             self.out.sendto(
                 regRequest.encode("utf8"), (self.server, self.port)
             )
@@ -1695,7 +1501,7 @@ class SIPClient:
 
     def register(self) -> bool:
         self.recvLock.acquire()
-        firstRequest = self.genFirstRequest()
+        firstRequest = self.gen_first_response()
         self.out.sendto(firstRequest.encode("utf8"), (self.server, self.port))
 
         self.out.setblocking(False)
@@ -1719,7 +1525,7 @@ class SIPClient:
 
         if response.status == SIPStatus(401):
             # Unauthorized, likely due to being password protected.
-            regRequest = self.genRegister(response)
+            regRequest = self.gen_register(response)
             self.out.sendto(
                 regRequest.encode("utf8"), (self.server, self.port)
             )
@@ -1775,7 +1581,7 @@ class SIPClient:
                 return self.register()
             else:
                 # TODO: determine if needed here
-                self.parseMessage(response)
+                self.parse_message(response)
 
         debug(response.summary())
         debug(response.raw)
@@ -1810,7 +1616,7 @@ class SIPClient:
         # TODO: check if needed and maybe implement fully
         self.recvLock.acquire()
 
-        subRequest = self.genSubscribe(lastresponse)
+        subRequest = self.gen_subscribe(lastresponse)
         self.out.sendto(subRequest.encode("utf8"), (self.server, self.port))
 
         response = SIPMessage(self.s.recv(8192))
